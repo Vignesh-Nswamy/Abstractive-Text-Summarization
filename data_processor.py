@@ -29,8 +29,8 @@ class DataProcessor:
 
         self.target_vocab_size = len(self.bert_tokenizer.vocab)
 
-        train_shards = glob('data/cnn_dailymail/shards_train/*.tfrecord')
-        train_dataset = tf.data.TFRecordDataset(train_shards).map(_parse_function)
+        train_dataset = tf.data.Dataset.list_files('data/cnn_dailymail/train_shards/*.tfrecord')
+        train_dataset = tf.data.TFRecordDataset(train_dataset).map(_parse_function)
         train_dataset = train_dataset.map(self.tf_encode, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         train_dataset = train_dataset.filter(self.filter_max_length)
         train_dataset = train_dataset.cache()
@@ -40,6 +40,7 @@ class DataProcessor:
         val_dataset = tf.data.TFRecordDataset(val_path).map(_parse_function)
         val_dataset = val_dataset.map(self.tf_encode)
         val_dataset = val_dataset.filter(self.filter_max_length)
+        val_dataset = val_dataset.cache()
         self.val_dataset = val_dataset.padded_batch(batch_size)
 
     def encode(self, article, summary):

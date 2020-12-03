@@ -43,10 +43,10 @@ config = {
         'vocab_size': target_vocab_size,
         'num_layers': 4,
         'max_sequence_length': 512,
-        'dropout_rate': 0.1,
-        'intermediate_size': 3072,
+        'dropout_rate': 0.4,
+        'intermediate_size': 512,
         'num_attention_heads': 8,
-        'attention_dropout_rate': 0.1
+        'attention_dropout_rate': 0.3
     }
 }
 

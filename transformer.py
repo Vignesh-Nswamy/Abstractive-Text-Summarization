@@ -1,5 +1,3 @@
-from abc import ABC
-
 import tensorflow as tf
 from encoder import TransformerEncoder
 from decoder import TransformerDecoder
@@ -7,7 +5,7 @@ from decoder import TransformerDecoder
 from scheduler import CustomSchedule
 
 
-class Transformer(tf.keras.Model, ABC):
+class Transformer(tf.keras.Model):
     def __init__(self, config):
         super(Transformer, self).__init__()
         self.config = config
