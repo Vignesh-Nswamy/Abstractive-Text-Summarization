@@ -1,7 +1,8 @@
+from abc import ABC
 import tensorflow as tf
 
 
-class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
+class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule, ABC):
     def __init__(self, d_model, warmup_steps=4000):
         super(CustomSchedule, self).__init__()
 

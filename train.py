@@ -1,14 +1,14 @@
+import yaml
 import tensorflow as tf
 from transformer import Transformer
 from data_processor import DataProcessor
 from masks import create_masks
 
 
-tf.compat.v1.flags.DEFINE_integer('batch_size', 16, 'Batch size')
-tf.compat.v1.flags.DEFINE_integer('buffer_size', 10000, 'Shuffle buffer size')
 tf.compat.v1.flags.DEFINE_integer('num_epochs', 6, 'Number of training epochs')
-tf.compat.v1.flags.DEFINE_integer('max_len', 256, 'Maximum length of input sentences')
-tf.compat.v1.flags.DEFINE_integer('logdir', 'ckpts/', 'Directory to store checkpoints and event logs')
+tf.compat.v1.flags.DEFINE_integer('config_path', 'configs/default_config.yml',
+                                  'Path to a YAML configuration file')
+tf.compat.v1.flags.DEFINE_integer('logdir', 'ckpts/', 'Directory to write event logs and store checkpoints.')
 FLAGS = tf.compat.v1.flags.FLAGS
 
 batch_size = FLAGS.batch_size
@@ -16,47 +16,16 @@ num_epochs = FLAGS.num_epochs
 max_len = FLAGS.max_len
 buffer_size = FLAGS.buffer_size
 
-data_proc = DataProcessor({
-    'train_path': 'data/cnn_dailymail/train_shards/*.tfrecord',
-    'val_path': 'data/cnn_dailymail/val.tfrecord',
-    'test_path': 'data/cnn_dailymail/test.tfrecord',
-    'shuffle_buffer_size': FLAGS.buffer_size,
-    'batch_size': FLAGS.batch_size,
-    'max_len': FLAGS.max_len
-})
+global_config = yaml.load(open(FLAGS.config_path), Loader=yaml.FullLoader)
+
+data_proc = DataProcessor(global_config['data'])
 target_vocab_size = data_proc.target_vocab_size
 input_vocab_size = data_proc.target_vocab_size
 train_dataset, val_dataset = data_proc.get_dataset('train'), data_proc.get_dataset('val')
 
-config = {
-    'encoder': {
-        'is_bert': True,
-        'bert_hub_url': 'https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/3',
-        'finetune_bert': False,
-        'd_model': 768,
-        'vocab_size': input_vocab_size,
-        'num_layers': 4,
-        'max_sequence_length': 1024,
-        'dropout_rate': 0.1,
-        'intermediate_size': 512,
-        'num_attention_heads': 8,
-        'attention_dropout_rate': 0.1
-    },
-    'decoder': {
-        'd_model': 768,
-        'vocab_size': target_vocab_size,
-        'num_layers': 4,
-        'max_sequence_length': 512,
-        'dropout_rate': 0.4,
-        'intermediate_size': 512,
-        'num_attention_heads': 8,
-        'attention_dropout_rate': 0.3
-    }
-}
-
 
 def main(_):
-    transformer = Transformer(config)
+    transformer = Transformer(global_config['transformer'])
 
     ckpt = tf.train.Checkpoint(transformer=transformer,
                                optimizer=transformer.optimizer)
@@ -67,9 +36,6 @@ def main(_):
     if ckpt_manager.latest_checkpoint:
         ckpt.restore(ckpt_manager.latest_checkpoint)
         print('Latest checkpoint restored!!')
-
-    if FLAGS.weights != 'none':
-        transformer.load_weights(FLAGS.weights)
 
     train_step_signature = [
         tf.TensorSpec(shape=(None, None), dtype=tf.int64),
