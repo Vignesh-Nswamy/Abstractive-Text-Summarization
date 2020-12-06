@@ -26,7 +26,7 @@ data_proc = DataProcessor({
 })
 target_vocab_size = data_proc.target_vocab_size
 input_vocab_size = data_proc.target_vocab_size
-train_dataset, val_dataset = data_proc.get_dataset('train'), data_proc.val_dataset('val')
+train_dataset, val_dataset = data_proc.get_dataset('train'), data_proc.get_dataset('val')
 
 config = {
     'encoder': {
