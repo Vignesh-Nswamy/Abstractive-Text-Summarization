@@ -4,12 +4,11 @@ from data_processor import DataProcessor
 from masks import create_masks
 
 
-print(f'TensorFlow version: {tf.__version__}')
-
 tf.compat.v1.flags.DEFINE_integer('batch_size', 16, 'Batch size')
 tf.compat.v1.flags.DEFINE_integer('buffer_size', 10000, 'Shuffle buffer size')
 tf.compat.v1.flags.DEFINE_integer('num_epochs', 6, 'Number of training epochs')
 tf.compat.v1.flags.DEFINE_integer('max_len', 256, 'Maximum length of input sentences')
+tf.compat.v1.flags.DEFINE_integer('logdir', 'ckpts/', 'Directory to store checkpoints and event logs')
 FLAGS = tf.compat.v1.flags.FLAGS
 
 batch_size = FLAGS.batch_size
@@ -17,12 +16,17 @@ num_epochs = FLAGS.num_epochs
 max_len = FLAGS.max_len
 buffer_size = FLAGS.buffer_size
 
-data_proc = DataProcessor(batch_size=batch_size,
-                          buffer_size=buffer_size,
-                          max_len=max_len,
-                          tokenizer=None)
+data_proc = DataProcessor({
+    'train_path': 'data/cnn_dailymail/train_shards/*.tfrecord',
+    'val_path': 'data/cnn_dailymail/val.tfrecord',
+    'test_path': 'data/cnn_dailymail/test.tfrecord',
+    'shuffle_buffer_size': FLAGS.buffer_size,
+    'batch_size': FLAGS.batch_size,
+    'max_len': FLAGS.max_len
+})
 target_vocab_size = data_proc.target_vocab_size
-train_dataset, val_dataset = data_proc.train_dataset, data_proc.val_dataset
+input_vocab_size = data_proc.target_vocab_size
+train_dataset, val_dataset = data_proc.get_dataset('train'), data_proc.val_dataset('val')
 
 config = {
     'encoder': {
@@ -30,7 +34,7 @@ config = {
         'bert_hub_url': 'https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/3',
         'finetune_bert': False,
         'd_model': 768,
-        # 'vocab_size': input_vocab_size,
+        'vocab_size': input_vocab_size,
         'num_layers': 4,
         'max_sequence_length': 1024,
         'dropout_rate': 0.1,
@@ -54,23 +58,18 @@ config = {
 def main(_):
     transformer = Transformer(config)
 
-    # tokenizer = None
-    # if config['encoder']['is_bert']:
-    #     vocab_file = transformer.encoder.bert_encoder.resolved_object.vocab_file.asset_path.numpy()
-    #     do_lower_case = transformer.encoder.bert_encoder.resolved_object.do_lower_case.numpy()
-    #     tokenizer = tokenization.FullTokenizer(vocab_file, do_lower_case)
-
-    checkpoint_path = './ckpts'
     ckpt = tf.train.Checkpoint(transformer=transformer,
                                optimizer=transformer.optimizer)
 
-    ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=5)
+    ckpt_manager = tf.train.CheckpointManager(ckpt, FLAGS.logdir, max_to_keep=10)
 
     # if a checkpoint exists, restore the latest checkpoint.
     if ckpt_manager.latest_checkpoint:
         ckpt.restore(ckpt_manager.latest_checkpoint)
         print('Latest checkpoint restored!!')
 
+    if FLAGS.weights != 'none':
+        transformer.load_weights(FLAGS.weights)
 
     train_step_signature = [
         tf.TensorSpec(shape=(None, None), dtype=tf.int64),
@@ -150,9 +149,9 @@ def main(_):
         total_train_examples = t_batch * batch_size
         progBar.update(total_train_examples, values=values)
 
-        if (epoch + 1) % 3 == 0:
-            ckpt_manager.save()
-            print(f'\nCheckpoint saved - Epoch {epoch + 1}')
+        # if (epoch + 1) % 3 == 0:
+        ckpt_manager.save()
+        print(f'\nCheckpoint saved - Epoch {epoch + 1}')
 
 
 if __name__ == '__main__':
