@@ -3,16 +3,18 @@ import tensorflow as tf
 import tokenization
 
 
+def get_bert_tokenizer():
+    gs_folder_bert = "gs://cloud-tpu-checkpoints/bert/keras_bert/uncased_L-12_H-768_A-12"
+    return tokenization.FullTokenizer(vocab_file=os.path.join(gs_folder_bert, "vocab.txt"),
+                                      do_lower_case=True)
+
+
 class DataProcessor:
     def __init__(self, config, tokenizer=None):
         self.config = config
 
-        if tokenizer is None:
-            gs_folder_bert = "gs://cloud-tpu-checkpoints/bert/keras_bert/uncased_L-12_H-768_A-12"
-            self.bert_tokenizer = tokenization.FullTokenizer(vocab_file=os.path.join(gs_folder_bert, "vocab.txt"),
-                                                             do_lower_case=True)
-        else:
-            self.bert_tokenizer = tokenizer
+        self.bert_tokenizer = get_bert_tokenizer() if tokenizer is None \
+            else tokenizer
 
         self.target_vocab_size = len(self.bert_tokenizer.vocab)
 
