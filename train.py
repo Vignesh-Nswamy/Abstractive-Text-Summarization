@@ -1,4 +1,5 @@
 import yaml
+import json
 import tensorflow as tf
 from transformer import Transformer
 from data_processor import DataProcessor
@@ -6,22 +7,25 @@ from masks import create_masks
 
 
 tf.compat.v1.flags.DEFINE_integer('num_epochs', 6, 'Number of training epochs')
-tf.compat.v1.flags.DEFINE_integer('config_path', 'configs/default_config.yml',
+tf.compat.v1.flags.DEFINE_string('config_path', 'configs/default_config.yml',
                                   'Path to a YAML configuration file')
-tf.compat.v1.flags.DEFINE_integer('logdir', 'ckpts/', 'Directory to write event logs and store checkpoints.')
+tf.compat.v1.flags.DEFINE_string('logdir', 'ckpts/', 'Directory to write event logs and store checkpoints.')
 FLAGS = tf.compat.v1.flags.FLAGS
 
-batch_size = FLAGS.batch_size
-num_epochs = FLAGS.num_epochs
-max_len = FLAGS.max_len
-buffer_size = FLAGS.buffer_size
-
-global_config = yaml.load(open(FLAGS.config_path), Loader=yaml.FullLoader)
+global_config = yaml.load(open(FLAGS.config_path))
 
 data_proc = DataProcessor(global_config['data'])
 target_vocab_size = data_proc.target_vocab_size
 input_vocab_size = data_proc.target_vocab_size
 train_dataset, val_dataset = data_proc.get_dataset('train'), data_proc.get_dataset('val')
+
+global_config['transformer']['encoder']['vocab_size'] = input_vocab_size
+global_config['transformer']['decoder']['vocab_size'] = target_vocab_size
+
+# print(json.dumps(global_config, indent=4, sort_keys=True))
+
+num_epochs = FLAGS.num_epochs
+batch_size = global_config['data']['batch_size']
 
 
 def main(_):
