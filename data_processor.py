@@ -56,7 +56,8 @@ class DataProcessor:
         dataset = dataset.filter(filter_max_length)
         dataset = dataset.cache()
         dataset = dataset.shuffle(self.config.get('shuffle_buffer_size', 256)) if split == 'train' else dataset
-        dataset = dataset.padded_batch(self.config.get('batch_size', 32))
+        dataset = dataset.padded_batch(self.config.get('batch_size', 32)) if split != 'test' \
+            else dataset
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
         return dataset
