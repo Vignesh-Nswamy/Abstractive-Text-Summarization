@@ -8,6 +8,7 @@ from transformer import Transformer
 tf.compat.v1.flags.DEFINE_string('config_path', 'configs/default_config.yml',
                                  'Path to a YAML configuration file')
 tf.compat.v1.flags.DEFINE_string('article_path', 'test_article.txt', 'Path to article in txt format')
+tf.compat.v1.flags.DEFINE_string('out_path', 'test_article_predic_summary.txt', 'Path to article in txt format')
 tf.compat.v1.flags.DEFINE_string('ckpt_dir', 'ckpts/', 'Directory where checkpoints are stored.')
 FLAGS = tf.compat.v1.flags.FLAGS
 
@@ -80,7 +81,10 @@ def main(_):
         raise Exception(f'Input file must not have more than 512 token ids. Found {len(model_inp)}')
     predicted_summary_ids = predict(model_inp)
     predicted_summary = clean_pred(tokenizer.convert_ids_to_tokens(predicted_summary_ids.numpy()))
-    print(f'Summary: \n{predicted_summary}')
+
+    open(FLAGS.out_path, 'w').write(predicted_summary)
+
+    print(f'Summary saved at {FLAGS.out_path}')
 
 
 if __name__ == '__main__':
